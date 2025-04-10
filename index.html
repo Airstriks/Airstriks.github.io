@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporting d'Incidents</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { display: block; margin-top: 15px; }
+    input, select, textarea { width: 300px; padding: 8px; }
+    button { margin-top: 15px; padding: 10px 20px; }
+    .message { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Rapport d'Incident</h1>
+  <form id="incidentForm">
+    <label for="employe">Employé :</label>
+    <!-- Le menu déroulant qui sera alimenté dynamiquement -->
+    <select id="employe" name="employe" required>
+      <option value="">Chargement en cours...</option>
+    </select>
+    
+    <label for="datetime">Date et heure de l'incident :</label>
+    <input type="datetime-local" id="datetime" name="datetime" required>
+    
+    <label for="typeIncident">Type d'incident :</label>
+    <select id="typeIncident" name="typeIncident" required>
+      <option value="">Sélectionnez un type d'incident</option>
+      <option value="Tenue">Tenue</option>
+      <option value="Comportement">Comportement</option>
+      <option value="Retard">Retard</option>
+      <option value="Autre">Autre</option>
+    </select>
+    
+    <label for="description">Description :</label>
+    <textarea id="description" name="description" rows="4" required></textarea>
+    
+    <button type="submit">Envoyer le rapport</button>
+  </form>
+  
+  <div class="message" id="message"></div>
+  
+  <script>
+    // URL de la web app qui fournit la liste des employés
+    const employeesAPI = "https://script.google.com/macros/s/AKfycbwn0qz_LuCNHNhjWPhOLH8BvU1cr_2zoGi-yMkJYLJ4vEc8asoDOTH0E0jOp8jumCFNrQ/exec" // Remplace par ton URL déployée
+    
+    // Charger dynamiquement la liste des employés
+function loadEmployeeOptions() {
+  console.log("Chargement des options d'employés..."); // Pour vérifier que la fonction est appelée
+
+  fetch(employeesAPI)
+    .then(response => {
+      console.log("Réponse reçue du serveur:", response);
+      return response.json();
+    })
+    .then(data => {
+      console.log("Données reçues:", data);
+      const selectElem = document.getElementById('employe');
+      if(!selectElem) {
+        console.error("L'élément avec l'id 'employe' est introuvable dans le document.");
+        return;
+      }
+      // Vider le menu existant
+      selectElem.innerHTML = '<option value="">Sélectionnez un employé</option>';
+      data.options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.label;
+        selectElem.appendChild(opt);
+      });
+      console.log("Options ajoutées avec succès.");
+    })
+    .catch(error => {
+      console.error("Erreur lors du chargement des employés :", error);
+      document.getElementById('employe').innerHTML = '<option value="">Erreur de chargement</option>';
+    });
+}
+
+    
+    // Charger les options dès l'ouverture de la page
+    document.addEventListener('DOMContentLoaded', loadEmployeeOptions);
+    
+    // Gestion du formulaire pour envoyer les données au backend
+    document.getElementById('incidentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = {
+        employe: document.getElementById('employe').value,  // Ce sera le PN sélectionné
+        datetime: document.getElementById('datetime').value,
+        typeIncident: document.getElementById('typeIncident').value,
+        description: document.getElementById('description').value
+      };
+      
+      // URL de ton Google Apps Script pour enregistrer le rapport
+      const backendURL = "https://script.google.com/macros/s/YYYY/exec"; // Remplace par l'URL de ta Web App de backend
+      
+      fetch(backendURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.text())
+      .then(text => {
+        document.getElementById('message').textContent = "Rapport envoyé avec succès !";
+        document.getElementById('incidentForm').reset();
+      })
+      .catch(error => {
+        document.getElementById('message').textContent = "Erreur lors de l'envoi : " + error;
+      });
+    });
+  </script>
+</body>
+</html>
