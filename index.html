@@ -2,111 +2,189 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Reporting d'Incidents</title>
+  <title>Reporting d'incident</title>
+  <!-- Google Fonts pour une police moderne -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    label { display: block; margin-top: 15px; }
-    input, select, textarea { width: 300px; padding: 8px; }
-    button { margin-top: 15px; padding: 10px 20px; }
-    .message { margin-top: 20px; font-weight: bold; }
+    /* Réinitialisation de la boîte */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #fff;
+      width: 100%;
+      max-width: 500px;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    form { width: 100%; }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 500;
+      color: #555;
+    }
+    input[type="datetime-local"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover { background-color: #0056b3; }
+    #status {
+      margin-top: 20px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .error { color: #d9534f; }
+    .success { color: #5cb85c; }
   </style>
 </head>
 <body>
-  <h1>Rapport d'Incident</h1>
-  <form id="incidentForm">
-    <label for="employe">Employé :</label>
-    <!-- Le menu déroulant qui sera alimenté dynamiquement -->
-    <select id="employe" name="employe" required>
-      <option value="">Chargement en cours...</option>
-    </select>
-    
-    <label for="datetime">Date et heure de l'incident :</label>
-    <input type="datetime-local" id="datetime" name="datetime" required>
-    
-    <label for="typeIncident">Type d'incident :</label>
-    <select id="typeIncident" name="typeIncident" required>
-      <option value="">Sélectionnez un type d'incident</option>
-      <option value="Tenue">Tenue</option>
-      <option value="Comportement">Comportement</option>
-      <option value="Retard">Retard</option>
-      <option value="Autre">Autre</option>
-    </select>
-    
-    <label for="description">Description :</label>
-    <textarea id="description" name="description" rows="4" required></textarea>
-    
-    <button type="submit">Envoyer le rapport</button>
-  </form>
-  
-  <div class="message" id="message"></div>
+  <div class="container">
+    <h1>Reporting d'incident</h1>
+    <form id="incidentForm">
+      <label for="employe">Employé :</label>
+      <select id="employe" name="employe" required>
+        <option value="">Chargement en cours...</option>
+      </select>
+      
+      <label for="incidentDatetime">Date et heure de l'incident :</label>
+      <input type="datetime-local" id="incidentDatetime" name="incidentDatetime" required>
+      
+      <label for="incidentType">Type d'incident :</label>
+      <select id="incidentType" name="incidentType" required>
+        <option value="">Sélectionnez un type</option>
+        <option value="tenue">Tenue</option>
+        <option value="comportement">Comportement</option>
+        <option value="retard">Retard</option>
+        <option value="autre">Autre</option>
+      </select>
+      
+      <label for="incidentDescription">Description :</label>
+      <textarea id="incidentDescription" name="incidentDescription" rows="4" required></textarea>
+      
+      <button type="submit">Envoyer le rapport</button>
+    </form>
+    <p id="status"></p>
+  </div>
   
   <script>
-    // URL de la web app qui fournit la liste des employés
-   const employeesAPI = "https://cors-anywhere.herokuapp.com/https://script.google.com/macros/s/AKfycbwn0qz_LuCNHNhjWPhOLH8BvU1cr_2zoGi-yMkJYLJ4vEc8asoDOTH0E0jOp8jumCFNrQ/exec"; // Remplace par ton URL déployée
+ // URL de la Web App qui retourne la liste des employés
+      const employeesAPI = "https://script.google.com/macros/s/AKfycbxIhInh_rMct_osgoGHVhlVhg-_AfHkG4UqG7S6KcHTTYcqB4-h44RsVMM8t4zN6RqTwQ/exec";
+    // URL du backend pour enregistrer le rapport (utilise l'URL que tu as fournie)
+    const backendURL = "https://script.google.com/macros/s/AKfycbz_fkpUJ5aF5NnPfdvqKET24pv0bQBXviycSRXgqP0oFEfsPJ2-OddezOPbAl5iC6TEFw/exec";
     
-    // Charger dynamiquement la liste des employés
-function loadEmployeeOptions() {
-  console.log("Chargement des options d'employés..."); // Pour vérifier que la fonction est appelée
-
-  fetch(employeesAPI)
-    .then(response => {
-      console.log("Réponse reçue du serveur:", response);
-      return response.json();
-    })
-    .then(data => {
-      console.log("Données reçues:", data);
-      const selectElem = document.getElementById('employe');
-      if(!selectElem) {
-        console.error("L'élément avec l'id 'employe' est introuvable dans le document.");
-        return;
+    // Fonction pour charger la liste des employés dans le menu déroulant
+    async function loadEmployeeOptions() {
+      const statusElem = document.getElementById('status');
+      try {
+        statusElem.textContent = "Chargement de la liste des employés…";
+        const response = await fetch(employeesAPI);
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Données des employés reçues :", data);
+        if (!data.options || !Array.isArray(data.options)) {
+          throw new Error("Format de données incorrect : propriété 'options' absente ou non un tableau.");
+        }
+        const selectElem = document.getElementById('employe');
+        selectElem.innerHTML = '<option value="">Sélectionnez un employé</option>';
+        data.options.forEach(option => {
+          const opt = document.createElement('option');
+          opt.value = option.value;
+          opt.textContent = option.label;
+          selectElem.appendChild(opt);
+        });
+        statusElem.textContent = "Liste des employés chargée.";
+        statusElem.className = "success";
+      } catch (error) {
+        console.error("Erreur lors du chargement des employés :", error);
+        document.getElementById('employe').innerHTML = '<option value="">Erreur de chargement</option>';
+        statusElem.textContent = "Erreur lors du chargement de la liste des employés.";
+        statusElem.className = "error";
       }
-      // Vider le menu existant
-      selectElem.innerHTML = '<option value="">Sélectionnez un employé</option>';
-      data.options.forEach(option => {
-        const opt = document.createElement('option');
-        opt.value = option.value;
-        opt.textContent = option.label;
-        selectElem.appendChild(opt);
-      });
-      console.log("Options ajoutées avec succès.");
-    })
-    .catch(error => {
-      console.error("Erreur lors du chargement des employés :", error);
-      document.getElementById('employe').innerHTML = '<option value="">Erreur de chargement</option>';
-    });
-}
-
+    }
     
-    // Charger les options dès l'ouverture de la page
+    // Charger la liste dès que le DOM est prêt (assurez-vous que la page est servie depuis un domaine HTTP/HTTPS)
     document.addEventListener('DOMContentLoaded', loadEmployeeOptions);
     
-    // Gestion du formulaire pour envoyer les données au backend
-    document.getElementById('incidentForm').addEventListener('submit', function(e) {
+    // Gestion de la soumission du formulaire
+    document.getElementById('incidentForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const statusElem = document.getElementById('status');
       
-      const formData = {
-        employe: document.getElementById('employe').value,  // Ce sera le PN sélectionné
-        datetime: document.getElementById('datetime').value,
-        typeIncident: document.getElementById('typeIncident').value,
-        description: document.getElementById('description').value
+      const employe = document.getElementById('employe').value;
+      const incidentDatetime = document.getElementById('incidentDatetime').value;
+      const incidentType = document.getElementById('incidentType').value;
+      const incidentDescription = document.getElementById('incidentDescription').value;
+      
+      if (!employe || !incidentDatetime || !incidentType || !incidentDescription) {
+        statusElem.textContent = "Veuillez remplir tous les champs.";
+        statusElem.className = "error";
+        return;
+      }
+      
+      const payload = {
+        employe: employe,
+        incidentDatetime: incidentDatetime,
+        incidentType: incidentType,
+        incidentDescription: incidentDescription
       };
       
-      // URL de ton Google Apps Script pour enregistrer le rapport
-      const backendURL = "https://script.google.com/macros/s/YYYY/exec"; // Remplace par l'URL de ta Web App de backend
-      
-      fetch(backendURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-      .then(response => response.text())
-      .then(text => {
-        document.getElementById('message').textContent = "Rapport envoyé avec succès !";
+      try {
+        statusElem.textContent = "Envoi du rapport…";
+        const response = await fetch(backendURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP lors de l'envoi: ${response.status}`);
+        }
+        const text = await response.text();
+        console.log("Réponse du backend :", text);
+        statusElem.textContent = "Rapport envoyé avec succès !";
+        statusElem.className = "success";
         document.getElementById('incidentForm').reset();
-      })
-      .catch(error => {
-        document.getElementById('message').textContent = "Erreur lors de l'envoi : " + error;
-      });
+        // Optionnel : recharge la liste des employés
+        loadEmployeeOptions();
+      } catch (error) {
+        console.error("Erreur lors de l'envoi du rapport :", error);
+        statusElem.textContent = "Erreur lors de l'envoi du rapport.";
+        statusElem.className = "error";
+      }
     });
   </script>
 </body>
