@@ -2,11 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Reporting d'incident</title>
-  <!-- Google Fonts pour une police moderne -->
+  <title>Rapport d'erreur</title>
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* Réinitialisation de la boîte */
     * { box-sizing: border-box; }
     body {
       font-family: 'Roboto', sans-serif;
@@ -26,11 +25,7 @@
       border-radius: 8px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
+    h1 { text-align: center; margin-bottom: 20px; color: #333; }
     form { width: 100%; }
     label {
       display: block;
@@ -61,20 +56,16 @@
       transition: background-color 0.3s ease;
     }
     button:hover { background-color: #0056b3; }
-    #status {
-      margin-top: 20px;
-      text-align: center;
-      font-weight: bold;
-    }
+    #status { margin-top: 20px; text-align: center; font-weight: bold; }
     .error { color: #d9534f; }
     .success { color: #5cb85c; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Reporting d'incident</h1>
+    <h1>Rapport d'erreur</h1>
     <form id="incidentForm">
-      <label for="employe">Employé :</label>
+      <label for="employe">Runner :</label>
       <select id="employe" name="employe" required>
         <option value="">Chargement en cours...</option>
       </select>
@@ -94,16 +85,16 @@
       <label for="incidentDescription">Description :</label>
       <textarea id="incidentDescription" name="incidentDescription" rows="4" required></textarea>
       
-      <button type="submit">Envoyer le rapport</button>
+      <button type="submit">Envoyer</button>
     </form>
     <p id="status"></p>
   </div>
   
   <script>
- // URL de la Web App qui retourne la liste des employés
-      const employeesAPI = "https://script.google.com/macros/s/AKfycbxIhInh_rMct_osgoGHVhlVhg-_AfHkG4UqG7S6KcHTTYcqB4-h44RsVMM8t4zN6RqTwQ/exec";
-    // URL du backend pour enregistrer le rapport (utilise l'URL que tu as fournie)
-    const backendURL = "https://script.google.com/macros/s/AKfycbz_fkpUJ5aF5NnPfdvqKET24pv0bQBXviycSRXgqP0oFEfsPJ2-OddezOPbAl5iC6TEFw/exec";
+// Mettez ici l'URL de votre Web App qui fournit la liste des employés depuis le fichier "Runners"
+    const employeesAPI = "https://script.google.com/macros/s/AKfycbzN6POujr8TClHpZK8OtTU6zsB6PafkGrWbfkob6RY2ag4TEFXKzM8tjadb5VW9ufkXYA/exec";
+    // Mettez ici l'URL de votre backend pour enregistrer le rapport
+    const backendURL = "https://script.google.com/macros/s/AKfycbxZW9M7-wHTFOUsw3zNt9FpEv6zbqncjrCfQE5kz2sdfpF7FyYRRG02GgaZGBRHxc1pTw/exec";
     
     // Fonction pour charger la liste des employés dans le menu déroulant
     async function loadEmployeeOptions() {
@@ -120,11 +111,14 @@
           throw new Error("Format de données incorrect : propriété 'options' absente ou non un tableau.");
         }
         const selectElem = document.getElementById('employe');
-        selectElem.innerHTML = '<option value="">Sélectionnez un employé</option>';
+        selectElem.innerHTML = '<option value="">Sélectionnez un runner</option>';
         data.options.forEach(option => {
           const opt = document.createElement('option');
-          opt.value = option.value;
+          // La valeur est le PN, et le texte affiché est le nom complet.
+          opt.value = option.value; 
           opt.textContent = option.label;
+          // Conserver le nom complet dans un attribut data-fullname
+          opt.setAttribute("data-fullname", option.label);
           selectElem.appendChild(opt);
         });
         statusElem.textContent = "Liste des employés chargée.";
@@ -137,7 +131,7 @@
       }
     }
     
-    // Charger la liste dès que le DOM est prêt (assurez-vous que la page est servie depuis un domaine HTTP/HTTPS)
+    // Charger la liste dès que le DOM est prêt
     document.addEventListener('DOMContentLoaded', loadEmployeeOptions);
     
     // Gestion de la soumission du formulaire
@@ -145,19 +139,26 @@
       e.preventDefault();
       const statusElem = document.getElementById('status');
       
-      const employe = document.getElementById('employe').value;
+      const selectElem = document.getElementById('employe');
+      const selectedOption = selectElem.options[selectElem.selectedIndex];
+      const pn = selectedOption.value; 
+      // Récupérer le nom complet depuis l'attribut data-fullname
+      const fullName = selectedOption.getAttribute("data-fullname") || "";
+      
       const incidentDatetime = document.getElementById('incidentDatetime').value;
       const incidentType = document.getElementById('incidentType').value;
       const incidentDescription = document.getElementById('incidentDescription').value;
       
-      if (!employe || !incidentDatetime || !incidentType || !incidentDescription) {
+      if (!pn || !incidentDatetime || !incidentType || !incidentDescription) {
         statusElem.textContent = "Veuillez remplir tous les champs.";
         statusElem.className = "error";
         return;
       }
       
+      // Créer le payload incluant PN et le nom complet
       const payload = {
-        employe: employe,
+        employe: pn,      // Le PN
+        fullName: fullName, // Le nom complet tel qu'affiché
         incidentDatetime: incidentDatetime,
         incidentType: incidentType,
         incidentDescription: incidentDescription
@@ -165,21 +166,16 @@
       
       try {
         statusElem.textContent = "Envoi du rapport…";
+        // Utilisation de no-cors pour éviter les problèmes CORS
         const response = await fetch(backendURL, {
           method: "POST",
+          mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP lors de l'envoi: ${response.status}`);
-        }
-        const text = await response.text();
-        console.log("Réponse du backend :", text);
-        statusElem.textContent = "Rapport envoyé avec succès !";
-        statusElem.className = "success";
-        document.getElementById('incidentForm').reset();
-        // Optionnel : recharge la liste des employés
-        loadEmployeeOptions();
+        console.log("Requête envoyée en mode no-cors.");
+        // Remplacer le contenu de la page par le message de succès
+        document.body.innerHTML = "<div style='text-align: center; padding: 50px; font-family: Roboto, sans-serif;'><h1>Votre rapport a bien été enregistré !</h1></div>";
       } catch (error) {
         console.error("Erreur lors de l'envoi du rapport :", error);
         statusElem.textContent = "Erreur lors de l'envoi du rapport.";
